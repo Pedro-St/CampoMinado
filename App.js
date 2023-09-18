@@ -1,34 +1,99 @@
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import React, {Component} from 'react';
+import { StyleSheet, Text, View, Alert } from 'react-native';
 import params from './src/params';
 import Field from './src/components/Field';
+import Flag from './src/components/Flag';
+import MineField from './src/components/MineField';
+import {
+  createMinedBoard,
+  cloneBoard,
+  openField,
+  hadExplosion,
+  wonGame,
+  showMines,
+  invertFlag,
+  flagsUsed,
+} from './src/functions';
+import Header from './src/components/Header';
 
-export default function App() {
-  return (
-    <View style={styles.container}>
-      <Text style={styles.welcome}>Iniciando o Mines!</Text>
-      <Text style={styles.introductions}>Tamanho da grade: 
-      {params.getRowsAmount()}x{params.getColumnsAmount()}</Text>
+export default class App extends Component {
 
-      <Field />
+  constructor(props) {
+    super(props)
+    this.state = this.createState()
+  }
+
+  minesAmount = () => {
+    const cols = params.getColumnsAmount()
+    const rows = params.getRowsAmount()
+    return Math.ceil(cols * rows * params.difficultLevel)
+  }
+
+  createState = () => {
+    const cols = params.getColumnsAmount()
+    const rows = params.getRowsAmount()
+    return {
+      board: createMinedBoard(rows, cols, this.minesAmount()),
+      won: false,
+      lost: false,
+      showLevelSelection: false,
+    }
+  }
+
+  onOpenField = (row, column) => {
+    const board = cloneBoard(this.state.board)
+    openField(board, row, column)
+    const lost = hadExplosion(board)
+    const won = wonGame(board)
+
+    if(lost) {
+      showMines(board)
+      Alert.alert('Perdeu!', 'Seu verme!')
+    }
+    if(won) {
+      Alert.alert('Você Ganhou!', "Não se anime muito você ainda é um verme!")
+    }
+    this.setState({board, lost, won})
+  }
+
+  onSelectField = (row, column) => {
+    const board = cloneBoard(this.state.board)
+    invertFlag(board, row, column)
+    const won = wonGame(board)
+
+    if (won) {
+      Alert.alert('Você Ganhou!', "Não se anime muito você ainda é um verme!")
+    }
+
+    this.setState({ board, won })
+  }
+
+
+
+  render () {
+    return (
+      <View style={styles.container}>
+        <Header flagsLeft={this.minesAmount() - flagsUsed(this.state.board)}
+        onNewGame={() => this.setState(this.createState())} />
+        <View style={styles.board}>
+          <MineField board={this.state.board} 
+          onOpenField={this.onOpenField}
+          onSelectField={this.onSelectField}
+          />
+      </View>
+
     </View>
   );
+}
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
+    justifyContent: 'flex-end'
+  },
+  board: {
     alignItems: 'center',
-    justifyContent: 'center',
-  },
-  welcome: {
-    fontSize: 20,
-    textAlign: 'center',
-    margin: 10,
-  },
-  introductions: {
-    textAlign: 'center',
-    marginBottom: 10,
-  }  
+    backgroundColor: '#AAA'
+  }
 });
